@@ -1,0 +1,9 @@
+---
+- name: "Remove {{ get_binary_cmd }}"
+  tags:
+    - clean
+  block:
+    - name: "Remove {{ my_bin_dir ~ '/' ~ get_binary_cmd }}"
+      ansible.builtin.file:
+        path: "{{ my_bin_dir }}/{{ get_binary_cmd }}"
+        state: absent

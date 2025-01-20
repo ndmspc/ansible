@@ -1,0 +1,84 @@
+---
+- name: "Verify binary {{ get_binary_cmd }}"
+  tags:
+    - install
+    - verify
+  block:
+    - name: "Print binary and requested version"
+      ansible.builtin.debug:
+        msg: "Processing {{ get_binary_cmd }} {{ get_binary_version }}"
+
+    - name: "Getting version from {{ get_binary_cmd }}" # noqa command-instead-of-shell
+      ansible.builtin.shell: "{{ my_bin_dir }}/{{ get_binary_cmd }} {{ get_binary_version_subcmd | default('version') }} {{ get_binary_post_version_args }}"
+      register: gbv_result
+      changed_when: false
+      failed_when: false
+
+    - name: "Resets 'binary_needs_install' variables"
+      ansible.builtin.set_fact:
+        binary_needs_install: false
+        binary_current_version: ""
+
+    - name: "Print binary version list after parse"
+      ansible.builtin.debug:
+        var: gbv_result.stdout_lines
+        verbosity: 1
+
+    - name: "Print binary version list after parse version"
+      ansible.builtin.debug:
+        var: gbv_result.stdout_lines[0].split(get_binary_parse_delimeter)
+        verbosity: 1
+
+    - name: "Resets 'binary_needs_install' and 'binary_current_version'"
+      when:
+        - gbv_result.stdout_lines|length > 0
+        # - get_binary_version_check is undefined or get_binary_version_check|length == 0
+      ansible.builtin.set_fact:
+        binary_current_version: "{{ gbv_result.stdout_lines[0].split(get_binary_parse_delimeter)[get_binary_parse_index] | default('') }}"
+
+    - name: "Set 'get_binary_version_final'"
+      ansible.builtin.set_fact:
+        get_binary_version_final: "{{ get_binary_version_check if get_binary_version_check | length > 0 else get_binary_version }}"
+
+    - name: "Set 'get_binary_version' when check is disabled"
+      when: get_binary_version_check == "-1"
+      ansible.builtin.set_fact:
+        get_binary_version_final: "{{ get_binary_version }}"
+
+    - name: "Check if binare needs to be installed"
+      when:
+        - binary_current_version|length == 0 or binary_current_version != get_binary_version_final
+        # - get_binary_version_check is undefined or get_binary_version_check|length == 0
+      ansible.builtin.set_fact:
+        binary_needs_install: true
+
+    - name: "Print binary version list after parse"
+      ansible.builtin.debug:
+        var: gbv_result.stdout_lines[0].split(get_binary_parse_delimeter)
+        verbosity: 1
+
+    - name: "Generate binary info"
+      # when: get_binary_verify_msg|bool
+      ansible.builtin.set_fact:
+        get_binary_info:
+          "{{ get_binary_cmd }} current={{ binary_current_version }}
+          request={{ get_binary_version_final }}
+          ok={{ not binary_needs_install | bool }}"
+
+    - name: "Adds binary info to 'get_binary_summary_ok' when ok"
+      when:
+        - not binary_needs_install|bool
+        # - get_binary_verify_msg|bool
+      ansible.builtin.set_fact:
+        get_binary_summary_ok: "{{ get_binary_summary_ok + [get_binary_info] }}"
+
+    - name: "Adds binary info to 'get_binary_summary_fail' when fail"
+      when:
+        - binary_needs_install|bool
+        # - get_binary_verify_msg|bool
+      ansible.builtin.set_fact:
+        get_binary_summary_fail: "{{ get_binary_summary_fail + [get_binary_info] }}"
+
+    - name: "Reset 'get_binary_version_check'"
+      ansible.builtin.set_fact:
+        get_binary_version_check: ""

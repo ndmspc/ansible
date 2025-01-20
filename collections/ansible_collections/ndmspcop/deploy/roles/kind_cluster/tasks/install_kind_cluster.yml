@@ -1,0 +1,57 @@
+---
+- name: "Delete kind cluster {{ cluster_name }}"
+  tags:
+    - delete
+    - install
+  ansible.builtin.command: "{{ kind_binary }} delete cluster --name {{ cluster_name }}"
+  environment:
+    KIND_EXPERIMENTAL_PROVIDER: "{{ container_tool }}"
+  changed_when: true
+
+# - name: "Deleting network {{ cluster_name }}"
+#   tags:
+#     - install
+#     - delete
+#   ansible.builtin.command: >
+#     {{ container_tool }} network rm {{ cluster_name }}
+#   changed_when: true
+#
+# - name: "Creating network {{ cluster_name }}"
+#   tags:
+#     - install
+#   ansible.builtin.command: >
+#     {{ container_tool }} network create {{ cluster_name }}
+#   changed_when: true
+
+- name: "Generating kind config file"
+  tags:
+    - install
+  ansible.builtin.template:
+    src: kind_config.yaml.j2
+    dest: "{{ kind_config_path }}"
+    mode: "0644"
+
+- name: "Create kind cluster {{ cluster_name }}"
+  tags:
+    - install
+  ansible.builtin.command: >
+    {{ kind_binary }} create cluster
+    --name {{ cluster_name }}
+    --image kindest/node:{{ kind_kube_version }}
+    --config={{ kind_config_path }}
+  environment:
+    KIND_EXPERIMENTAL_PROVIDER: "{{ container_tool }}"
+  changed_when: true
+
+- name: "Get kind cluster information"
+  tags:
+    - install
+  kubernetes.core.k8s_cluster_info:
+  register: api_status
+
+- name: "Failing when cluster failed to start"
+  ansible.builtin.fail:
+    msg: "Kind cluster was not able to start !!!"
+  when: api_status.failed is undefined or api_status.failed|bool
+  tags:
+    - install

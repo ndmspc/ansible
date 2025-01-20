@@ -1,0 +1,121 @@
+---
+- name: "Init"
+  tags:
+    - init-new
+  # when: init is defined
+  block:
+    - name: "Doing vault init (retries are fine and it might take a while)"
+      ansible.builtin.command: >
+        kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} -- vault operator init -format=json
+      register: vault_init_result
+      changed_when: true
+      retries: 100
+      delay: 3
+      until: vault_init_result.rc == 0
+
+    - name: "Print results"
+      ansible.builtin.debug:
+        var: vault_init_result
+
+    - name: "Get Object"
+      ansible.builtin.set_fact:
+        vault_init_object: "{{ vault_init_result.stdout | from_json }}"
+
+    - name: "Print results"
+      ansible.builtin.debug:
+        var: vault_init_object
+
+    - name: "Dump config to file"
+      ansible.builtin.copy:
+        content: "{{ vault_init_result.stdout }}"
+        dest: "{{ my_cluster_wk_dir }}/vault-keys.json"
+        mode: "0644"
+
+    - name: "Unseal vault"
+      ansible.builtin.command: >
+        kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} -- vault operator unseal {{ item }}
+      loop: "{{ vault_init_object.unseal_keys_b64[: vault_init_object.unseal_threshold | int] }}"
+      changed_when: true
+
+    - name: "Generate autounseal policy"
+      ansible.builtin.template:
+        src: vault-secrets.yaml.j2
+        dest: "{{ vault_secret_path }}"
+        mode: "0644"
+
+    - name: "Login with root token"
+      ansible.builtin.command: >
+        kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} -- vault login {{ vault_init_object.root_token }}
+      changed_when: true
+
+    - name: "Enable kv secret engine in path 'kvtest'"
+      ansible.builtin.command: >
+        kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} -- vault secrets enable -path=kvtest kv
+      changed_when: true
+
+    - name: "Put simple test kv value"
+      ansible.builtin.command: >
+        kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} -- vault kv put kvtest/test test=test
+      changed_when: true
+
+    # - name: "Enable transit secret engine"
+    #   ansible.builtin.command: >
+    #     kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} -- vault secrets enable transit
+    #   changed_when: true
+    #   ignore_errors: true
+    #
+    # - name: "Add transit key for autounseal"
+    #   ansible.builtin.command: >
+    #     kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} -- vault write -f transit/keys/autounseal
+    #   changed_when: true
+    #
+    # - name: "Generate autounseal policy"
+    #   ansible.bu:wrap-ttiltin.template:
+    #     src: policy-autounseal.hcl.j2
+    #     dest: "{{ policy_autounseal_path }}"
+    #     mode: "0644"
+    #
+    # - name: "Add transit key for autounseal"
+    #   ansible.builtin.command: >
+    #     kubectl cp {{ policy_autounseal_path }} vault-hashicorp-0:/home/vault/vault-policy-autounseal.hcl -n {{ vault_namespace }}
+    #   changed_when: true
+    #
+    # - name: "Add transit key for autounseal"
+    #   ansible.builtin.command: >
+    #     kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} --
+    #     vault policy write autounseal /home/vault/vault-policy-autounseal.hcl
+    #   changed_when: true
+    #
+    # - name: "Add transit key for autounseal"
+    #   ansible.builtin.command: >
+    #     kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} --
+    #     vault token create -orphan -policy="autounseal" -wrap-ttl=120 -period=24h -field=wrapping_token
+    #   register: token_create_result
+    #   changed_when: true
+    #
+    # - name: "Print create token results"
+    #   ansible.builtin.debug:
+    #     var: token_create_result
+    #
+    # - name: "Unwrap token"
+    #   ansible.builtin.command: >
+    #     kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} --
+    #     vault unwrap -field=token {{ token_create_result.stdout }}
+    #   register: token_create_unwrap
+    #   changed_when: true
+    #
+    # - name: "Print token unwrap results"
+    #   ansible.builtin.debug:
+    #     var: token_create_unwrap.stdout
+# - name: "Install knative serving {{ vault_secret_path }}"
+#   kubernetes.core.k8s:
+#     state: present
+#     src: "{{ vault_secret_path }}"
+#     wait: true
+#     wait_sleep: 1
+#     wait_timeout: 360
+#     kubeconfig: "{{ kubeconfig }}"
+
+- name: "Recreate vault kubernetes auth"
+  ansible.builtin.include_tasks:
+    file: vault_kubernetes_auth_refresh.yml

@@ -1,0 +1,41 @@
+---
+my_work_dir: "{{ ansible_env.HOME }}/.ndmspc/env"
+my_cluster_wk_dir: "{{ my_work_dir }}/{{ with_cluster }}"
+my_bin_dir: "{{ my_work_dir }}/bin"
+my_retries: 3
+my_delay: 15
+container_tool: docker
+container_custom_registries_path: "{{ ansible_env.HOME }}/.config/containers/registries.conf.d"
+kubeconfig: "{{ ansible_env.HOME }}/.kube/config"
+
+kubectl_binary: kubectl
+kubectl_version: v1.30.4
+kind_binary: kind
+kind_version: v0.24.0
+kind_kube_version: "{{ kubectl_version }}"
+cluster_name: "kind"
+# extraMountHostPath: "{{ ansible_env.HOME }}"
+# extraMountContainerPath: "/home"
+kind_cluster_apiServerAddress: "127.0.0.1"
+metallb_version: "v0.14.9"
+kind_metallb_ip_range: "172.19.255.1-172.19.255.250"
+kund_cluster_install_retries: 1
+kind_config_path: "{{ my_cluster_wk_dir }}/kind_config.yaml"
+kind_config_map_registry_path: "{{ my_cluster_wk_dir }}/kind_config_map_registry.yaml"
+with_ingress: true
+with_metrics: true
+with_registry: false
+metrics_server_version: 0.7.2
+registry_name: kind-registry
+registry_port: 5001
+#registry_host_ip: 127.0.0.1
+registry_host_ip: 0.0.0.0
+registry_hostname: ""
+registry_ssl: false
+registry_cert_dir: "{{ my_work_dir }}/certs"
+registry_ca_cert_name: "registry-ca-cert"
+registry_ca_cert_namespace: "default"
+registry_insecure_path: "{{ container_custom_registries_path }}/local.conf"
+ingress_controller_path: "{{ my_cluster_wk_dir }}/ingress_controller.yaml"
+kustomization_path: "{{ my_cluster_wk_dir }}/kustomization.yaml"
+kind_metallb_config_path: "{{ my_cluster_wk_dir }}/metallb_config.yaml"

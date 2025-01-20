@@ -1,0 +1,113 @@
+---
+- name: "Uninstall fluxcd"
+  ansible.builtin.command: "{{ flux_binary }} uninstall -s"
+  changed_when: true
+  failed_when: false
+  # register: flux_uninstall_output
+  tags:
+    - clean
+
+- name: "Installing fluxcd and doing init of sealed-secrets"
+  tags:
+    - install
+    - init
+  block:
+    - name: "Installing fluxcd"
+      ansible.builtin.command: "{{ flux_binary }} install --components-extra={{ flux_install_extra_components }} {{ flux_extra_args }}"
+      changed_when: true
+
+- name: "Init fluxcd on empty cluster"
+  tags:
+    - install
+    - init
+  block:
+    - name: "Installing sealed-secrets helm repository"
+      ansible.builtin.command: >
+        {{ flux_binary }} create source helm sealed-secrets
+        --interval=1h
+        --url=https://bitnami-labs.github.io/sealed-secrets
+      changed_when: true
+
+    - name: "Create sealed-secrets namespace"
+      ansible.builtin.command: "{{ kubectl_binary }} create namespace sealed-secrets"
+      changed_when: true
+
+    - name: "Installing sealed-secrets helm repository"
+      ansible.builtin.command: >
+        {{ flux_binary }} create helmrelease sealed-secrets \
+        --interval=1h \
+        --release-name=sealed-secrets-controller \
+        --target-namespace=sealed-secrets \
+        --source=HelmRepository/sealed-secrets \
+        --chart=sealed-secrets \
+        --chart-version=">=1.15.0-0" \
+        --crds=CreateReplace
+      changed_when: true
+
+    - name: "Fetch sealed-secrets certificate"
+      ansible.builtin.command: >
+        {{ kubeseal_binary }} --fetch-cert \
+        --controller-name=sealed-secrets-controller \
+        --controller-namespace=sealed-secrets
+      register: sealed_secrets_certificate_result
+      changed_when: true
+
+    - name: "Dump certificate to the file {{ flux_sealed_secrets_certificate_path }}"
+      ansible.builtin.copy:
+        content: "{{ sealed_secrets_certificate_result.stdout }}"
+        dest: "{{ flux_sealed_secrets_certificate_path }}"
+        mode: "0644"
+
+    - name: "Generate vault secret {{ flux_eks_vault_secret_path }}"
+      ansible.builtin.template:
+        src: eks-vault-secret.yaml.j2
+        dest: "{{ flux_eks_vault_secret_path }}"
+        mode: "0644"
+
+    - name: "Generate vault sealed secret {{ flux_eks_vault_secret_sealed_path }}"
+      ansible.builtin.shell: >
+        {{ kubeseal_binary }}
+        --format=yaml
+        --cert={{ flux_sealed_secrets_certificate_path }}
+        < {{ flux_eks_vault_secret_path }}
+        > {{ flux_eks_vault_secret_sealed_path }}
+      changed_when: true
+
+    - name: "Create vault namespace"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} create namespace vault
+      changed_when: true
+
+    - name: "Apply vault sealed-secrets"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ flux_eks_vault_secret_sealed_path }}
+      changed_when: true
+
+    # - name: "Unistalling fluxcd"
+    #   ansible.builtin.command: "{{ flux_binary }} uninstall -s"
+    #   changed_when: true
+
+- name: "Bootstraping flux for branch {{ flux_bootstrap_branch }}"
+  tags:
+    - bootstrap
+  block:
+    # - name: "Installing fluxcd"
+    #   ansible.builtin.command: "{{ flux_binary }} install --components-extra={{ flux_install_extra_components }} {{ flux_extra_args }}"
+    #   changed_when: true
+
+    - name: "Bootstraping at branch {{ flux_bootstrap_branch }}"
+      environment:
+        GITHUB_TOKEN: "{{ github_token }}"
+      ansible.builtin.command: >
+        flux bootstrap github --token-auth
+        --namespace={{ flux_bootstrap_namespace }}
+        --owner={{ flux_bootstrap_owner }}
+        --repository={{ flux_bootstrap_repository }}
+        --branch={{ flux_bootstrap_branch }}
+        --path={{ flux_bootstrap_path }}
+      register: flux_bootstrap_result
+      changed_when: true
+
+    - name: "Print results"
+      ansible.builtin.debug:
+        var: flux_bootstrap_result

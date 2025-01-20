@@ -1,0 +1,52 @@
+---
+- name: "Install kind cluster"
+  block:
+    - name: "Ensure that the {{ my_cluster_wk_dir ~ 'directory exists and is empty' }}"
+      ansible.builtin.file:
+        state: "{{ item }}"
+        path: "{{ my_cluster_wk_dir }}"
+        mode: "755"
+      with_items:
+        - absent
+        - directory
+      tags:
+        - clean
+        - install
+
+    - name: "Set default options"
+      ansible.builtin.set_fact:
+        with_registry: true
+        with_ingress: true
+        with_metrics: true
+      tags:
+        - clean
+        - install
+
+    - name: "Set initial 'registry_hostname'"
+      when: registry_hostname is undefined or registry_hostname|length == 0
+      tags:
+        - install
+      ansible.builtin.set_fact:
+        registry_hostname: "{{ ansible_facts['fqdn'] | default('localhost.localdomain') }}"
+
+    - name: "Set initial 'registry_ip'"
+      when: registry_ip is undefined or registry_ip|length == 0
+      tags:
+        - install
+      ansible.builtin.set_fact:
+        registry_ip: "{{ ansible_facts['all_ipv4_addresses'][0] }}"
+
+    - name: "Set initial 'kind_cluster_install_retry'"
+      ansible.builtin.set_fact:
+        kind_cluster_install_retry: 1
+      tags:
+        - clean
+        - install
+
+    - name: "Install cluster {{ cluster_name }}"
+      ansible.builtin.include_tasks:
+        file: install.yml
+      tags:
+        - delete
+        - clean
+        - install

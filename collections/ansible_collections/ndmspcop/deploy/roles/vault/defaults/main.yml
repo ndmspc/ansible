@@ -1,0 +1,11 @@
+---
+my_bin_dir: "{{ my_work_dir }}/bin"
+my_cluster_wk_dir: "{{ my_work_dir }}/{{ with_cluster }}"
+my_retries: 20
+my_delay: 3
+policy_autounseal_path: "{{ my_cluster_wk_dir }}/vault-policy-autounseal.hcl"
+vault_secret_path: "{{ my_cluster_wk_dir }}/vault-secrets.yaml"
+vault_namespace: "vault"
+vault_root_token: ""
+aws_access_key_id: ""
+aws_secret_access_key: ""

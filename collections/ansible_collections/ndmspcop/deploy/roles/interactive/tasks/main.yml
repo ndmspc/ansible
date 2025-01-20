@@ -1,0 +1,16 @@
+---
+- name: "Interactive mode"
+  when: interactive is undefined or interactive|bool
+  block:
+    - name: "Print message"
+      when: interactive_msg is defined and interactive_msg|length > 0
+      ansible.builtin.debug:
+        msg: "{{ interactive_msg }}"
+
+    - name: "Waiting for prompt"
+      # when: interactive_msg is defined and interactive_msg|length > 0
+      ansible.builtin.pause:
+
+    - name: "Reset message value"
+      ansible.builtin.set_fact:
+        interactive_msg: ""

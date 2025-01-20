@@ -1,0 +1,16 @@
+apiVersion: v1
+data:
+  application_default_credentials.json: Y2hhbmdlbWU=
+  gcrurl: aHR0cHM6Ly9nY3IuaW8=
+kind: Secret
+metadata:
+  creationTimestamp: "2024-12-10T18:57:09Z"
+  labels:
+    app: registry-creds
+    cloud: gcr
+    kubernetes.io/minikube-addons: registry-creds
+  name: registry-creds-gcr
+  namespace: kube-system
+  resourceVersion: "1344"
+  uid: bb3169ba-6ac9-43dc-b7a6-f356855720cb
+type: Opaque

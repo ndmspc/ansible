@@ -1,0 +1,15 @@
+---
+my_work_dir: "{{ ansible_env.HOME }}/.ndmspc/env"
+my_bin_dir: "{{ my_work_dir }}/bin"
+ikc_tmp_dir: "{{ my_work_dir }}/kind"
+kind_config_map_registry_path: "{{ ikc_tmp_dir }}/kind_config_map_registry.yaml"
+kind_tekton_operator_path: "{{ ikc_tmp_dir }}/kind_tekton_operator.yaml"
+kind_tekton_pipeline_path: "{{ ikc_tmp_dir }}/kind_tekton_pipeline.yaml"
+kind_tekton_triggers_path: "{{ ikc_tmp_dir }}/kind_tekton_triggers.yaml"
+kind_tekton_triggers_interceptors_path: "{{ ikc_tmp_dir }}/kind_tekton_triggers_interceptors.yaml"
+kind_tekton_dashboard_path: "{{ ikc_tmp_dir }}/kind_tekton_dashboard.yaml"
+tekton_pipeline_version: v0.64.0
+tekton_triggers_version: v0.29.1
+tekton_dashboard_version: v0.51.0
+tekton_validate_certs: true
+kubeconfig: "{{ ansible_env.HOME }}/.kube/config"

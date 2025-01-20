@@ -1,0 +1,17 @@
+---
+- name: "Install minikube binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "minikube"
+    get_binary_version: "{{ minikube_version }}"
+    get_binary_url: >
+      https://github.com/kubernetes/minikube/releases/download/v{{ get_binary_version }}/minikube-{{ my_os }}-{{ my_arch }}
+    # get_binary_url_latest: "https://api.github.com/repos/kubernetes-sigs/kind/releases/latest"
+    get_binary_post_version_args: "| grep version"
+    get_binary_parse_delimeter: "v"
+    get_binary_parse_index: 2
+  tags:
+    - clean
+    - install
+    - verify

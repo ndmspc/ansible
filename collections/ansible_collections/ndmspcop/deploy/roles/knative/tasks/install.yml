@@ -1,0 +1,203 @@
+---
+- name: "Using knative quickstart"
+  when: with_knative_quickstart|bool
+  tags:
+    - install
+  block:
+    - name: "Apply knative quickstart" # noqa command-instead-of-shell
+      ansible.builtin.shell: |
+        set -o pipefail;
+        echo 'y\n' | {{ my_bin_dir }}/{{ knative_binary }} quickstart kind --name {{ cluster_name }}
+      register: knative_quickstart_result
+      changed_when: false
+      # failed_when: false
+
+    # kubectl patch cm -n knative-serving config-deployment --patch '{"data":{"registries-skipping-tag-resolving":"localhost:5001"}}'
+    - name: "Apply knative kind registry patch"
+      ansible.builtin.command:
+        cmd: '{{ kubectl_binary }} patch cm -n knative-serving config-deployment --patch ''{"data":{"registries-skipping-tag-resolving":"localhost:5001"}}'''
+      changed_when: true
+
+    - name: "Print results"
+      ansible.builtin.debug:
+        var: knative_quickstart_result
+
+- name: "Install knative"
+  when: with_knative_quickstart is undefined or not with_knative_quickstart|bool
+  tags:
+    - install
+    - init
+  block:
+    - name: "Install knative serving crds {{ knative_serving_version }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ knative_serving_crds_path }}
+      changed_when: true
+
+    # - name: "Install knative serving crds {{ knative_serving_version }}"
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     src: "{{ knative_serving_crds_path }}"
+    #     wait: true
+    #     wait_sleep: 1
+    #     wait_timeout: 360
+    #     kubeconfig: "{{ kubeconfig }}"
+    - name: "Install knative serving core {{ knative_serving_version }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ knative_serving_core_path }}
+      changed_when: true
+
+    # - name: "Install knative serving core {{ knative_serving_version }}"
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     src: "{{ knative_serving_core_path }}"
+    #     wait: true
+    #     wait_sleep: 1
+    #     wait_timeout: 360
+    #     kubeconfig: "{{ kubeconfig }}"
+    # - name: "Install knative kourier {{ knative_serving_version }}"
+    #   ansible.builtin.command: >
+    #     {{ kubectl_binary }} apply -f {{ knative_kourier_path }}
+    #   changed_when: true
+
+    - name: "Install knative kourier {{ knative_serving_version }}"
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ knative_kourier_path }}"
+        wait: true
+        wait_sleep: 1
+        wait_timeout: 360
+        kubeconfig: "{{ kubeconfig }}"
+
+    - name: "Patching configmap/config-network in knative {{ knative_serving_version }}"
+      when: with_cluster == "minikube" or with_cluster == "kind"
+      ansible.builtin.command: >
+        {{ kubectl_binary }}
+        patch configmap/config-network
+        --namespace knative-serving
+        --type merge
+        --patch '{"data":{"ingress-class":"kourier.ingress.networking.knative.dev"}}'
+      changed_when: true
+
+    - name: "Apply kourier-ingress service"
+      when: with_cluster == "minikube" or with_cluster == "kind"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ role_path }}/files/kourier-ingress.yaml
+      changed_when: true
+
+    - name: "Patching configmap/config-domain in knative {{ knative_serving_version }}"
+      when: with_cluster == "minikube" or with_cluster == "kind"
+      ansible.builtin.command: >
+        {{ kubectl_binary }}
+        patch configmap/config-domain
+        --namespace knative-serving
+        --patch '{"data": {"127.0.0.1.sslip.io": ""}}'
+      changed_when: true
+
+    # - name: "Install knative serving default domain {{ knative_serving_version }}"
+    #   ansible.builtin.command: >
+    #     {{ kubectl_binary }} apply -f {{ knative_serving_default_domain_path }}
+    #   changed_when: true
+
+    - name: "Install knative serving default domain {{ knative_serving_version }}"
+      when: with_cluster == "minikube" or with_cluster == "kind"
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ knative_serving_default_domain_path }}"
+        wait: true
+        wait_sleep: 1
+        wait_timeout: 360
+        kubeconfig: "{{ kubeconfig }}"
+
+    - name: "Install knative hpa {{ knative_serving_version }}"
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ knative_serving_hpa_path }}"
+        wait: true
+        wait_sleep: 1
+        wait_timeout: 360
+        kubeconfig: "{{ kubeconfig }}"
+
+    - name: "Install knative eventing crds {{ knative_eventing_version }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ knative_eventing_crds_path }}
+      changed_when: true
+
+    - name: "Install knative eventing core {{ knative_eventing_version }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ knative_eventing_core_path }}
+      changed_when: true
+
+    - name: "Install knative eventing in-memory-channel {{ knative_serving_version }}"
+      when: knative_channel is defined and knative_channel == "in-memory"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ knative_eventing_in_memory_channel_path }}
+      changed_when: true
+
+    - name: "Install knative eventing mt-channel-broker {{ knative_serving_version }}"
+      when: knative_channel is defined and knative_channel == "in-memory"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ knative_eventing_mt_channel_broker_path }}
+      changed_when: true
+
+    # - name: "Install knative eventing crds {{ knative_eventing_version }}"
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     src: "{{ knative_eventing_crds_path }}"
+    #     wait: true
+    #     wait_sleep: 1
+    #     wait_timeout: 360
+    #     kubeconfig: "{{ kubeconfig }}"
+    #
+    # - name: "Install knative eventing core {{ knative_eventing_version }}"
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     src: "{{ knative_eventing_core_path }}"
+    #     wait: true
+    #     wait_sleep: 1
+    #     wait_timeout: 360
+    #     kubeconfig: "{{ kubeconfig }}"
+    #
+    # - name: "Install knative eventing in-memory-channel {{ knative_eventing_version }}"
+    #   kubernetes.core.k8s:
+    #     state: present
+    #     src: "{{ knative_eventing_in_memory_channel_path }}"
+    #     wait: true
+    #     wait_sleep: 1
+    #     wait_timeout: 360
+    #     kubeconfig: "{{ kubeconfig }}"
+
+    - name: "Apply example broker"
+      when: knative_channel is defined and knative_channel == "in-memory"
+      block:
+        - name: "Generating example broker file"
+          ansible.builtin.template:
+            src: example-broker.yaml.j2
+            dest: "{{ example_broker_path }}"
+            mode: "0644"
+        - name: "Apply example broker"
+          ansible.builtin.command:
+            cmd: "{{ kubectl_binary }} apply -f {{ example_broker_path }}"
+          changed_when: true
+
+    - name: "Install knative eventing kafka-controller"
+      when: knative_channel is defined and knative_channel == "kafka"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ knative_eventing_kafka_controller_path }}
+      changed_when: true
+
+    - name: "Install knative eventing kafka-channel"
+      when: knative_channel is defined and knative_channel == "kafka"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ knative_eventing_kafka_channel_path }}
+      changed_when: true
+
+    - name: "Install knative eventing kafka-broker"
+      when: knative_channel is defined and knative_channel == "kafka"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ knative_eventing_kafka_broker_path }}
+      changed_when: true
+
+    - name: "Apply knative kind registry patch"
+      ansible.builtin.command:
+        cmd: '{{ kubectl_binary }} patch cm -n knative-serving config-deployment --patch ''{"data":{"registries-skipping-tag-resolving":"localhost:5001"}}'''
+      changed_when: true

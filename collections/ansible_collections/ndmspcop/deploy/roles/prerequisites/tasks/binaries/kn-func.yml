@@ -1,0 +1,17 @@
+---
+- name: "Install kn-fun binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "kn-func"
+    get_binary_version: "{{ kn_func_version }}"
+    get_binary_version_check: "{{ kn_func_version_check }}"
+    get_binary_url: >
+      https://github.com/knative/func/releases/download/knative-v{{ get_binary_version }}/func_{{ my_os }}_{{ my_arch }}
+    # get_binary_post_version_args: "| grep Version"
+    get_binary_parse_delimeter: "v"
+    get_binary_parse_index: 1
+  tags:
+    - clean
+    - install
+    - verify

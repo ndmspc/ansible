@@ -1,0 +1,11 @@
+---
+my_work_dir: "{{ ansible_env.HOME }}/.ndmspc/env"
+my_cluster_wk_dir: "{{ my_work_dir }}/{{ with_cluster }}"
+my_bin_dir: "{{ my_work_dir }}/bin"
+my_retries: 3
+my_delay: 15
+container_tool: docker
+registry_port: 5001
+cluster_verify_index_image: gcr.io/google-samples/hello-app:1.0
+cluster_verify_index_image_local: localhost:{{ registry_port }}/hello-app:1.0
+kubeconfig: "{{ ansible_env.HOME }}/.kube/config"

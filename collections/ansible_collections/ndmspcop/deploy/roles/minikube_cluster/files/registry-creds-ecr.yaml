@@ -1,0 +1,20 @@
+apiVersion: v1
+data:
+  AWS_ACCESS_KEY_ID: Y2hhbmdlbWU=
+  AWS_SECRET_ACCESS_KEY: Y2hhbmdlbWU=
+  AWS_SESSION_TOKEN: ""
+  aws-account: Y2hhbmdlbWU=
+  aws-assume-role: Y2hhbmdlbWU=
+  aws-region: Y2hhbmdlbWU=
+kind: Secret
+metadata:
+  creationTimestamp: "2024-12-10T18:57:09Z"
+  labels:
+    app: registry-creds
+    cloud: ecr
+    kubernetes.io/minikube-addons: registry-creds
+  name: registry-creds-ecr
+  namespace: kube-system
+  resourceVersion: "1343"
+  uid: 2b1f1222-c7c5-41b3-841d-ad87733e7930
+type: Opaque

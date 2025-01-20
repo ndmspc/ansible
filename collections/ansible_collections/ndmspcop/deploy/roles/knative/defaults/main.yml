@@ -1,0 +1,26 @@
+---
+my_work_dir: "{{ ansible_env.HOME }}/.ndmspc/env"
+my_bin_dir: "{{ my_work_dir }}/bin"
+my_cluster_wk_dir: "{{ my_work_dir }}/{{ with_cluster }}"
+kubectl_binary: "kubectl"
+kubeconfig: "{{ ansible_env.HOME }}/.kube/config"
+knative_binary: "kn"
+with_knative_quickstart: false
+knative_channel: "in-memory"
+# knative_channel: "kafka"
+knative_serving_version: v1.16.0
+knative_eventing_version: v1.16.3
+knative_eventing_extension_version: v1.16.1
+knative_serving_crds_path: "{{ my_cluster_wk_dir }}/knative-serving-crds.yaml"
+knative_serving_core_path: "{{ my_cluster_wk_dir }}/knative-serving-core.yaml"
+knative_kourier_path: "{{ my_cluster_wk_dir }}/knative-kourier.yaml"
+knative_serving_default_domain_path: "{{ my_cluster_wk_dir }}/knative-serving-default-domain.yaml"
+knative_serving_hpa_path: "{{ my_cluster_wk_dir }}/knative-serving-hpa.yaml"
+knative_eventing_crds_path: "{{ my_cluster_wk_dir }}/knative-eventing-crds.yaml"
+knative_eventing_core_path: "{{ my_cluster_wk_dir }}/knative-eventing-core.yaml"
+knative_eventing_in_memory_channel_path: "{{ my_cluster_wk_dir }}/knative-eventing-in-memory-channel.yaml"
+knative_eventing_mt_channel_broker_path: "{{ my_cluster_wk_dir }}/knative-eventing-mt-channel-broker.yaml"
+knative_eventing_kafka_controller_path: "{{ my_cluster_wk_dir }}/knative-eventing-kafka-controller.yaml"
+knative_eventing_kafka_channel_path: "{{ my_cluster_wk_dir }}/knative-eventing-kafka-channel.yaml"
+knative_eventing_kafka_broker_path: "{{ my_cluster_wk_dir }}/knative-eventing-kafka-broker.yaml"
+example_broker_path: "{{ my_cluster_wk_dir }}/knative-example-broker.yaml"

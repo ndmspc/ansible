@@ -1,0 +1,81 @@
+---
+- name: "Install kind cluster {{ cluster_name ~ ' (Wait until success)'}}"
+  block:
+    - name: "Install core kind cluster {{ cluster_name }}"
+      ansible.builtin.include_tasks:
+        file: install_kind_cluster.yml
+      tags:
+        - delete
+        - clean
+        - install
+
+    - name: "Create secret 'kubeconfig'"
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Secret
+          metadata:
+            name: "kubeconfig"
+            namespace: "default"
+          data:
+            kubeconfig: "{{ lookup('file', ansible_env.HOME + '/.kube/config') | b64encode }}"
+      tags:
+        - install
+
+    - name: "Apply_kustomize"
+      when: with_ingress|bool or with_metrics|bool
+      tags:
+        # - clean
+        - install
+      ansible.builtin.include_tasks:
+        file: apply_kustomize.yml
+
+    - name: "Install metallb"
+      when: with_metallb is undefined or with_metallb|bool
+      tags:
+        # - clean
+        - install
+      ansible.builtin.include_tasks:
+        file: install_metallb.yml
+
+    - name: "Install registry"
+      when: with_registry|bool
+      tags:
+        - delete
+        - clean
+        - install
+      ansible.builtin.include_tasks:
+        file: install_registry.yml
+
+  rescue:
+    - name: "Fail after {{ kund_cluster_install_retries ~ ' retries' }}"
+      when: kind_cluster_install_retry | int >= kund_cluster_install_retries | int
+      tags:
+        - clean
+        - install
+      ansible.builtin.fail:
+        msg:
+          - "Failed to install kind cluster "
+          - "'{{ cluster_name ~ ' after (' ~ kind_cluster_install_retry | int ~ '/' ~ kund_cluster_install_retries ~ ') retries' }}"
+
+    - name: "Printing process info"
+      tags:
+        - clean
+        - install
+      ansible.builtin.debug:
+        msg: "Failed to install kind - Going to retry ({{ kind_cluster_install_retry | int + 1 }}/{{ kund_cluster_install_retries }}) ..."
+
+    - name: "Increase 'kind_cluster_install_retry' by 1"
+      tags:
+        - clean
+        - install
+      ansible.builtin.set_fact:
+        kind_cluster_install_retry: "{{ kind_cluster_install_retry | int + 1 }}"
+
+    - name: "Install cluster '{{ cluster_name }}'"
+      tags:
+        - clean
+        - install
+      ansible.builtin.include_tasks:
+        file: install.yml

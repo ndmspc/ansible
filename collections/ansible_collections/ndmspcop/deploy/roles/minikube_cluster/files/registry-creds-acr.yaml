@@ -1,0 +1,17 @@
+apiVersion: v1
+data:
+  ACR_CLIENT_ID: Y2hhbmdlbWU=
+  ACR_PASSWORD: Y2hhbmdlbWU=
+  ACR_URL: Y2hhbmdlbWU=
+kind: Secret
+metadata:
+  creationTimestamp: "2024-12-10T18:57:09Z"
+  labels:
+    app: registry-creds
+    cloud: acr
+    kubernetes.io/minikube-addons: registry-creds
+  name: registry-creds-acr
+  namespace: kube-system
+  resourceVersion: "1347"
+  uid: b7b05833-866c-40de-bc44-67b7f3d50afb
+type: Opaque

@@ -1,0 +1,135 @@
+---
+- name: "Remove registry '{{ registry_name }}'"
+  ansible.builtin.command: "{{ container_tool }} rm -f {{ registry_name }}"
+  failed_when: false
+  changed_when: true
+  tags:
+    - delete
+    - clean
+    - install
+
+- name: "Install registry {{ registry_name }}"
+  tags:
+    - install
+  block:
+    - name: "Ensure that the {{ registry_cert_dir ~ ' directory exists and is empty' }}"
+      ansible.builtin.file:
+        state: "{{ item }}"
+        path: "{{ registry_cert_dir }}"
+        mode: "0755"
+      with_items:
+        - absent
+        - directory
+
+    - name: "Reset 'subject_alt_name' and set 'kc_subject_alt_name_values'"
+      ansible.builtin.set_fact:
+        kc_subject_alt_name: ""
+        kc_subject_alt_name_values:
+          - "{{ registry_hostname }}"
+          - "localhost"
+          - "host.containers.internal"
+
+    - name: "Add IPv4 if exists"
+      ansible.builtin.set_fact:
+        kc_subject_alt_name_values: "{{ kc_subject_alt_name_values | default([]) + [ansible_default_ipv4.address + '.sslip.io'] }}"
+      when: ansible_default_ipv4.address is defined and ansible_default_ipv4.address | length > 0
+
+    - name: "Add IPv4 base single level DNS if IPv4 exists"
+      ansible.builtin.set_fact:
+        kc_subject_alt_name_values: "{{ kc_subject_alt_name_values | default([]) + [ansible_default_ipv4.address | replace('.', '-') + '.sslip.io'] }}"
+      when: ansible_default_ipv4.address is defined and ansible_default_ipv4.address | length > 0
+
+    - name: "Add IPv6 if exists"
+      ansible.builtin.set_fact:
+        kc_subject_alt_name_values: "{{ kc_subject_alt_name_values | default([]) + [ansible_default_ipv6.address | replace(':', '-') + '.sslip.io'] }}"
+      when: ansible_default_ipv6.address is defined and ansible_default_ipv6.address | length > 0
+
+    - name: "Prepend 'DNS:'"
+      ansible.builtin.set_fact:
+        kc_subject_alt_name_list: "{{ kc_subject_alt_name_list | default([]) + ['DNS:' + item] }}"
+      loop: "{{ kc_subject_alt_name_values }}"
+
+    - name: "Join comma separated from 'kc_subject_alt_name_list'"
+      ansible.builtin.set_fact:
+        kc_subject_alt_name: "{{ kc_subject_alt_name_list | join(',') }}"
+
+    - name: "Generate certificate in to {{ registry_cert_dir ~ ' with subject_alt_name=' ~ kc_subject_alt_name }}"
+      when: registry_ssl | bool
+      ansible.builtin.command: >
+        openssl req -newkey rsa:4096 -nodes -sha256 -keyout {{ registry_cert_dir }}/domain.key -x509 -days 365
+        -subj ''/CN=${reg_name}'' -addext "subjectAltName={{ kc_subject_alt_name }}"
+        -out {{ registry_cert_dir }}/domain.crt -batch
+      failed_when: false
+      changed_when: true
+
+    - name: "Setting registry arguments in case of ssl support"
+      when: registry_ssl | bool
+      ansible.builtin.set_fact:
+        kc_registry_args: >
+          -v {{ registry_cert_dir }}:/certs:Z -e REGISTRY_HTTP_ADDR=0.0.0.0:{{ registry_port }}
+          -e REGISTRY_HTTP_TLS_CERTIFICATE=/certs/domain.crt -e REGISTRY_HTTP_TLS_KEY=/certs/domain.key
+
+    - name: "Start registry {{ registry_name ~ ' at port ' ~ registry_port }}"
+      ansible.builtin.command: >
+        {{ container_tool }} run -d --restart=always --name {{ registry_name }} --network bridge {{ kc_registry_args | default('') }}
+        -p {{ registry_host_ip }}:{{ registry_port }}:5000 registry:2
+      # failed_when: false
+      changed_when: true
+
+    - name: "Connect registry {{ registry_name ~ ' to kind network' }}"
+      ansible.builtin.command: "{{ container_tool }} network connect kind {{ registry_name }}"
+      changed_when: true
+      # when: ansible_facts['user_uid'] == "0" or container_tool == "docker"
+
+    - name: "Ensure that the {{ continer_home_path ~ exists }}"
+      ansible.builtin.file:
+        state: directory
+        path: "{{ container_custom_registries_path }}"
+        mode: "0755"
+
+    - name: "Setting local insecure registry to {{ registry_insecure_path }}"
+      ansible.builtin.template:
+        src: registry_insecure.conf.j2
+        dest: "{{ registry_insecure_path }}"
+        mode: "0644"
+
+    - name: "Get list of nodes kind cluster '{{ cluster_name }}'"
+      ansible.builtin.command: "{{ kind_binary }} get nodes --name {{ cluster_name }}"
+      register: kc_kind_nodes_result
+      environment:
+        KIND_EXPERIMENTAL_PROVIDER: "{{ container_tool }}"
+      changed_when: false
+
+    - name: "Set list of nodes to 'kc_kind_nodes'"
+      ansible.builtin.set_fact:
+        kc_kind_nodes: "{{ kc_kind_nodes_result.stdout.split('\n') }}"
+
+    - name: "Apply changes on kind nodes"
+      ansible.builtin.include_tasks: kind_node_changes.yml
+      loop: "{{ kc_kind_nodes }}"
+      loop_control:
+        loop_var: node_item
+
+    - name: "Generating config map for registry file to '{{ kind_config_map_registry_path }}'"
+      ansible.builtin.template:
+        src: kind_config_map_registry.yaml.j2
+        dest: "{{ kind_config_map_registry_path }}"
+        mode: "0644"
+
+    - name: "Apply '{{ kind_config_map_registry_path ~ ' to the cluster' }}"
+      kubernetes.core.k8s:
+        state: present
+        src: "{{ kind_config_map_registry_path }}"
+
+    - name: "Create configMap {{ registry_ca_cert_name ~ ' in namespace ' ~ registry_ca_cert_namespace ~ ' from file ' ~ registry_cert_dir ~ '/domain.crt' }}"
+      when: registry_ssl | bool
+      kubernetes.core.k8s:
+        state: present
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: "{{ registry_ca_cert_name }}"
+            namespace: "{{ registry_ca_cert_namespace }}"
+          data:
+            registry-ca.crt: "{{ lookup('file', registry_cert_dir + '/domain.crt') }}"

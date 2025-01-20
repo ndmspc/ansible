@@ -1,0 +1,41 @@
+---
+my_work_dir: "{{ ansible_env.HOME }}/.ndmspc/env"
+my_cluster_wk_dir: "{{ my_work_dir }}/{{ with_cluster }}"
+my_bin_dir: "{{ my_work_dir }}/bin"
+my_retries: 3
+my_delay: 15
+container_tool: docker
+
+kubeconfig: "{{ ansible_env.HOME }}/.kube/config"
+kubectl_binary: "kubectl"
+minikube_binary: minikube
+minikube_cluster_version: ""
+minikube_cpus: 3
+minikube_memory: 4092
+cluster_name: "minikube"
+minikube_start_extra_args: ""
+minikube_ip: 192.168.200.200
+minikube_metallb_ip_range: "192.168.200.201-192.168.200.210"
+minikube_metallb_config_path: "{{ my_cluster_wk_dir }}/metallb_config.yaml"
+minikube_insecure_registries: "192.168.200.0/24"
+minikube_cluster_nodes: 1
+minikube_addons_list:
+  - "volumesnapshots"
+  - "csi-hostpath-driver"
+minikube_default_storageclass: "csi-hostpath-sc"
+extra_mount_arg: ""
+# extraMountHostPath: "{{ ansible_env.HOME }}"
+# extraMountContainerPath: "/home"
+minikube_redirect_registry_name: "minikube-redirect-registry"
+with_ingress: true
+with_metrics: true
+with_registry: true
+with_metallb: true
+with_dashboard: false
+registry_port: 5001
+registry_verify_index_image: gcr.io/google-samples/hello-app:1.0
+registry_verify_index_image_local: localhost:{{ registry_port }}/hello-app:1.0
+minikube_registry_cred_user: ""
+minikube_registry_cred_password: ""
+minikube_registry_cred_server: ""
+minikube_registry_cred_path: "{{ my_cluster_wk_dir }}/registry_cred.yaml"

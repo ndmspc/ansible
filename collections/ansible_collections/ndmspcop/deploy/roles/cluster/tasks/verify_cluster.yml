@@ -1,0 +1,99 @@
+---
+- name: "Verify cluster availability"
+  tags:
+    - always
+  block:
+    - name: "Failing when config is not defined"
+      when: kubeconfig is not defined or kubeconfig|length == 0
+      ansible.builtin.fail:
+        msg: "kubeconfig is not defined or is empty !!!"
+
+    - name: "Checking presence of {{ kubeconfig }}"
+      ansible.builtin.stat:
+        path: "{{ kubeconfig }}"
+      register: stat_result
+
+    - name: "Print error message when kubeconfig file doesn't exists"
+      ansible.builtin.fail:
+        msg: "kubeconfig file {{ kubeconfig ~ ' is not present !!!' }}"
+      when: not stat_result.stat.exists
+
+    - name: "Verify cluster with kubeconfig"
+      when:
+        - kubeconfig is defined
+        - kubeconfig|length > 0
+      kubernetes.core.k8s_cluster_info:
+        kubeconfig: "{{ kubeconfig }}"
+      register: api_status
+      failed_when: false
+
+    - name: "Print api exception if present"
+      ansible.builtin.debug:
+        var: api_status
+      when: api_status.exception is defined
+
+    - name: "Cluster status"
+      ansible.builtin.debug:
+        msg: "Cluster is running at {{ api_status.connection.host }}"
+      when: api_status.failed is defined and not api_status.failed|bool and api_status.connection.host is defined
+
+    - name: "Failing when cluster is not running"
+      ansible.builtin.fail:
+        msg: "Cluster is not running !!!"
+      when: api_status.failed is undefined or api_status.failed | bool or api_status.exception is defined
+
+- name: "Verify cluster local registry"
+  when: with_registry is defined and with_registry|bool
+  tags:
+    - verify
+  block:
+    - name: "Pull test image {{ kind_verify_index_image }}"
+      ansible.builtin.command: "{{ container_tool }} pull {{ cluster_verify_index_image }}"
+      changed_when: true
+
+    - name: "Retag test image {{ cluster_verify_index_image ~ ' to ' ~ cluster_verify_index_image_local }}"
+      ansible.builtin.command: "{{ container_tool }} tag {{ cluster_verify_index_image }} {{ cluster_verify_index_image_local }}"
+      changed_when: true
+
+    - name: "Push test image to {{ cluster_verify_index_image_local }}"
+      ansible.builtin.command: "{{ container_tool }} push {{ cluster_verify_index_image_local }}"
+      changed_when: true
+
+    - name: "Delete existing index pod"
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Pod
+        namespace: default
+        name: cluster-test-pod
+        state: absent
+        wait: true
+        wait_sleep: 1
+        wait_timeout: 30
+
+    - name: "Start test pod in kind cluster via {{ cluster_verify_index_image_local }}"
+      kubernetes.core.k8s:
+        state: present
+        wait: true
+        wait_sleep: 1
+        wait_timeout: 30
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: cluster-test-pod
+            namespace: default
+          spec:
+            containers:
+              - name: index-local
+                image: "{{ cluster_verify_index_image_local }}"
+
+    - name: "Delete test pod"
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Pod
+        namespace: default
+        name: cluster-test-pod
+        state: absent
+        wait: true
+        wait_sleep: 1
+        wait_timeout: 30

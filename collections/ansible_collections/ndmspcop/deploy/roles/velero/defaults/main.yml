@@ -1,0 +1,12 @@
+---
+my_work_dir: "{{ ansible_env.HOME }}/.ndmspc/env"
+velero_binary: "velero"
+velero_plugin_for_aws_version: "v1.11.0"
+velero_provider: "aws"
+velero_bucket_name: "test-disaster-staging-polyapi"
+velero_storage_location_name: "aws-demo"
+velero_bucket_aws_region: "us-west-2"
+velero_secret_file_path: "{{ my_work_dir }}/velero-aws-credential"
+velero_namespace_list: []
+aws_access_key_id: ""
+aws_secret_access_key: ""

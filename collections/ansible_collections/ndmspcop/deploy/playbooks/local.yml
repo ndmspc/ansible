@@ -1,0 +1,74 @@
+---
+- name: Local playbook
+  hosts: all
+  gather_facts: true
+  vars:
+    my_work_dir: "{{ ansible_env.HOME }}/.ndmspc/env"
+    my_bin_dir: "{{ my_work_dir }}/bin"
+    registry_cert_dir: "{{ my_work_dir }}/certs"
+    with_prerequisites: false
+    prerequisites: "kubectl,minikube,kind,kn,kn-quickstart,kn-func,flux,vault,k9s,lazygit,operator-sdk"
+    with_cluster: ""
+    with_registry: true
+    with_fluxcd: false
+    with_knative: false
+
+  environment:
+    # User has to do 'export SSL_CERT_DIR=$HOME/.ndmspc/env/certs' when running in rootless mode
+    SSL_CERT_DIR: "{{ registry_cert_dir }}"
+    PATH: "{{ my_bin_dir }}:{{ ansible_env.PATH }}"
+
+  tasks:
+    - name: "Running local"
+      block:
+        - name: "Processing prerequisites"
+          tags:
+            - test
+          when: with_prerequisites is defined and with_prerequisites | bool
+          ansible.builtin.import_role:
+            name: prerequisites
+
+        - name: "Processing minikube_cluster"
+          when: with_cluster is defined and with_cluster == "minikube"
+          ansible.builtin.import_role:
+            name: minikube_cluster
+
+        - name: "Processing kind cluster"
+          when: with_cluster is defined and with_cluster == "kind"
+          ansible.builtin.import_role:
+            name: kind_cluster
+
+        - name: "Processing cluster"
+          when: with_cluster is defined and with_cluster | length > 0
+          ansible.builtin.import_role:
+            name: cluster
+
+        - name: "Processing olm"
+          when: with_olm is defined and with_olm | bool
+          ansible.builtin.import_role:
+            name: olm
+
+        - name: "Processing tekton"
+          when: with_tekton is defined and with_tekton | bool
+          ansible.builtin.import_role:
+            name: olm
+
+        - name: "Processing knative"
+          when: with_knative is defined and with_knative | bool
+          ansible.builtin.import_role:
+            name: knative
+
+        - name: "Processing fluxcd"
+          when: with_fluxcd is defined and with_fluxcd | bool
+          ansible.builtin.import_role:
+            name: fluxcd
+
+        - name: "Processing velero"
+          when: with_velero is defined and with_velero | bool
+          ansible.builtin.import_role:
+            name: velero
+
+        - name: "Processing vault"
+          when: with_vault is defined and with_vault | bool
+          ansible.builtin.import_role:
+            name: vault

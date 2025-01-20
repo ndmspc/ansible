@@ -1,0 +1,18 @@
+resources:
+{% if with_ingress|bool == true %}
+  - https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
+{% endif %}
+{% if with_ingress|bool == true %}
+  - https://github.com/kubernetes-sigs/metrics-server/releases/download/v{{ metrics_server_version }}/components.yaml
+
+patches:
+  - patch: |-
+      - op: add
+        path: /spec/template/spec/containers/0/args/-
+        value: --kubelet-insecure-tls
+    target:
+      version: v1
+      kind: Deployment
+      name: metrics-server
+      namespace: kube-system
+{% endif %}

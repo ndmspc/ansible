@@ -1,0 +1,15 @@
+---
+- name: "Install kind binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "kind"
+    get_binary_version: "{{ kind_version }}"
+    get_binary_url: "https://github.com/kubernetes-sigs/kind/releases/download/{{ get_binary_version }}/kind-{{ my_os }}-{{ my_arch }}"
+    get_binary_url_latest: "https://api.github.com/repos/kubernetes-sigs/kind/releases/latest"
+    get_binary_parse_delimeter: " "
+    get_binary_parse_index: 1
+  tags:
+    - clean
+    - install
+    - verify

@@ -1,0 +1,28 @@
+---
+- name: "Download knative"
+  ansible.builtin.include_tasks:
+    file: download.yml
+  tags:
+    - clean
+    - install
+    - init
+
+- name: "Remove exiting knative"
+  ansible.builtin.include_tasks:
+    file: remove.yml
+  tags:
+    - clean
+    - install
+
+- name: "Install knative"
+  ansible.builtin.include_tasks:
+    file: install.yml
+  tags:
+    - install
+    - init
+
+- name: "Verify knative"
+  ansible.builtin.include_tasks:
+    file: verify.yml
+  tags:
+    - verify

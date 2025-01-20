@@ -1,0 +1,30 @@
+---
+- name: "Install k9s"
+  tags:
+    - clean
+    - install
+    - verify
+  block:
+    - name: "Set default os to 'my_os_final'"
+      ansible.builtin.set_fact:
+        my_os_final: "{{ my_os }}"
+
+    - name: "Handle macos correctly"
+      when: my_os == "darwin"
+      ansible.builtin.set_fact:
+        my_os_final: "Darwin"
+
+    - name: "Install k9s binary"
+      ansible.builtin.include_role:
+        name: get_binary
+      vars:
+        get_binary_cmd: "k9s"
+        get_binary_version: "{{ k9s_version }}"
+        get_binary_url: >
+          https://github.com/derailed/k9s/releases/download/v{{ get_binary_version }}/k9s_{{ my_os_final }}_{{ my_arch }}.tar.gz
+        get_binary_post_version_args: "| grep Version"
+        get_binary_parse_delimeter: "v"
+        get_binary_parse_index: 1
+        get_binary_extract: true
+        get_binary_extract_exclude: []
+        get_binary_version_rcs: [0, 1]

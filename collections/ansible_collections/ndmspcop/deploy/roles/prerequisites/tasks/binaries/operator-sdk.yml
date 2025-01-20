@@ -1,0 +1,14 @@
+---
+- name: "Install operator-sdk binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "operator-sdk"
+    get_binary_version: "{{ operator_sdk_version }}"
+    get_binary_url: "https://github.com/operator-framework/operator-sdk/releases/download/{{ get_binary_version }}/operator-sdk_{{ my_os }}_{{ my_arch }}"
+    get_binary_parse_delimeter: '"'
+    get_binary_parse_index: 1
+  tags:
+    - clean
+    - install
+    - verify

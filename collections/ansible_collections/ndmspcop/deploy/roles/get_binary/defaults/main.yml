@@ -1,0 +1,17 @@
+---
+my_work_dir: "{{ ansible_env.HOME }}/.ndmspc/env"
+my_bin_dir: "{{ my_work_dir }}/bin"
+my_retries: 3
+my_delay: 15
+binary_needs_install: false
+use_latest: false
+get_binary_version_subcmd: "version"
+get_binary_post_version_args: ""
+get_binary_version_rcs: [0]
+get_binary_version_check: ""
+get_binary_verify_msg: true
+get_binary_extract: false
+get_binary_extract_exclude: []
+get_binary_validate_certs: true
+get_binary_summary_ok: []
+get_binary_summary_fail: []

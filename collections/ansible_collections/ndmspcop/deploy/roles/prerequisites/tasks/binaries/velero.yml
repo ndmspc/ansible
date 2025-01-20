@@ -1,0 +1,23 @@
+---
+- name: "Install velero binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "velero"
+    get_binary_version: "{{ velero_version }}"
+    get_binary_url: >
+      https://github.com/vmware-tanzu/velero/releases/download/v{{ get_binary_version }}/velero-v{{ get_binary_version }}-linux-amd64.tar.gz
+    get_binary_post_version_args: "| grep Version"
+    get_binary_parse_delimeter: "v"
+    get_binary_extra_opts:
+      - --strip=1
+      - --wildcards
+      - "*/velero"
+    get_binary_parse_index: 1
+    get_binary_extract: true
+    get_binary_extract_exclude: ["examples", "LICENSE"]
+    get_binary_version_rcs: [0, 1]
+  tags:
+    - clean
+    - install
+    - verify

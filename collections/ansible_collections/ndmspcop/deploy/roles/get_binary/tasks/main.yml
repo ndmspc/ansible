@@ -1,0 +1,17 @@
+---
+- name: "Check latest version for {{ get_binary_cmd }}"
+  when: use_latest | bool
+  ansible.builtin.include_tasks:
+    file: latest.yml
+
+- name: "Install {{ get_binary_cmd }}"
+  ansible.builtin.include_tasks:
+    file: install.yml
+  tags:
+    - install
+
+- name: "Verify {{ get_binary_cmd }}"
+  ansible.builtin.include_tasks:
+    file: verify.yml
+  tags:
+    - verify
