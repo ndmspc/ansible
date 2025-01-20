@@ -1,0 +1,16 @@
+---
+- name: "Installing aws"
+  tags:
+    - install
+  block:
+    - name: "Checking presence of {{ my_bin_dir ~ '/' ~ aws_binary }}"
+      ansible.builtin.stat:
+        path: "{{ my_bin_dir }}/{{ aws_binary }}"
+      register: aws_stat_result
+
+    - name: "Installing aws script"
+      when: aws_stat_result is defined and not aws_stat_result.stat.exists
+      ansible.builtin.template:
+        src: aws.j2
+        dest: "{{ my_bin_dir }}/{{ aws_binary }}"
+        mode: "0755"

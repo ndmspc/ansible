@@ -1,0 +1,59 @@
+---
+- name: "Check system binaries"
+  ansible.builtin.include_tasks:
+    file: verify-sys.yml
+  loop:
+    # - openssl
+    - tar
+    - make
+  #    - "{{ container_tool }}-compose"
+  loop_control:
+    loop_var: sb_item
+  tags:
+    - install
+    - verify
+
+- name: "Reset message variable"
+  ansible.builtin.set_fact:
+    get_binary_summary_ok: []
+    get_binary_summary_fail: []
+  tags:
+    # - install
+    - verify
+
+- name: "Set prerequisite_list"
+  ansible.builtin.set_fact:
+    prerequisite_list: "{{ prerequisites.split(',') | list }}"
+  when:
+    - prerequisites is defined
+    - prerequisites|length > 0
+    - prerequisites != "all"
+  tags:
+    - install
+    - verify
+
+- name: "Install binaries"
+  ansible.builtin.include_tasks:
+    file: "binaries/{{ sb_item }}.yml"
+  loop: "{{ prerequisite_list }}"
+  loop_control:
+    loop_var: sb_item
+  tags:
+    - install
+    - verify
+
+- name: "Print install summary [OK]"
+  when: get_binary_summary_ok is defined and get_binary_summary_ok|length > 0
+  ansible.builtin.debug:
+    var: get_binary_summary_ok
+  tags:
+    # - install
+    - verify
+
+- name: "Print install summary [FAIL]"
+  when: get_binary_summary_fail is defined and get_binary_summary_fail|length > 0
+  ansible.builtin.fail:
+    msg: "{{ get_binary_summary_fail }}"
+  tags:
+    # - install
+    - verify

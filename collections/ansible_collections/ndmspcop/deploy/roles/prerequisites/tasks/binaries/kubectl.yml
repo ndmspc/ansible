@@ -1,0 +1,15 @@
+---
+- name: "Install kubectl binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "kubectl"
+    get_binary_version: "{{ kubectl_version }}"
+    get_binary_url: "https://storage.googleapis.com/kubernetes-release/release/{{ get_binary_version }}/bin/{{ my_os }}/{{ my_arch }}/kubectl"
+    get_binary_parse_delimeter: " "
+    get_binary_parse_index: 2
+    get_binary_version_rcs: [0, 1]
+  tags:
+    - clean
+    - install
+    - verify

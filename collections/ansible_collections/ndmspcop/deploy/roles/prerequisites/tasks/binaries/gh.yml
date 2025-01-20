@@ -1,0 +1,37 @@
+---
+- name: "Install gh"
+  tags:
+    - clean
+    - install
+    - verify
+  block:
+    - name: "Set default os to 'my_os_final'"
+      ansible.builtin.set_fact:
+        my_os_final: "{{ my_os }}"
+        my_extension: "tar.gz"
+        get_binary_extra_opts:
+          - --strip=2
+          - --wildcards
+          - "*/*/gh"
+
+    - name: "Handle macos correctly"
+      when: my_os == "darwin"
+      ansible.builtin.set_fact:
+        my_os_final: "macOS"
+        my_extension: "zip"
+        get_binary_extra_opts: []
+
+    - name: "Install gh binary"
+      ansible.builtin.include_role:
+        name: get_binary
+      vars:
+        get_binary_cmd: "gh"
+        get_binary_version: "{{ gh_version }}"
+        get_binary_version_subcmd: "--version"
+        get_binary_url: >
+          https://github.com/cli/cli/releases/download/v{{ get_binary_version }}/gh_{{ get_binary_version }}_{{ my_os_final }}_{{ my_arch }}.{{ my_extension }}
+        get_binary_parse_delimeter: " "
+        get_binary_parse_index: 2
+        get_binary_extract: true
+        get_binary_extract_exclude: ["LICENCE", "share"]
+        get_binary_version_rcs: [0, 1]

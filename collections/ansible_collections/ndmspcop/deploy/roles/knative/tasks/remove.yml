@@ -1,0 +1,90 @@
+---
+- name: "Uninstall knative"
+  when: with_knative_quickstart is undefined or not with_knative_quickstart|bool
+  tags:
+    # - delete
+    - clean
+  block:
+    - name: "Uninstall knative eventing kafka-broker"
+      when: knative_channel is defined and knative_channel == "kafka"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_eventing_kafka_broker_path }}
+      changed_when: true
+      failed_when: false
+
+    - name: "Uninstall knative eventing kafka-channel"
+      when: knative_channel is defined and knative_channel == "kafka"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_eventing_kafka_channel_path }}
+      changed_when: true
+      failed_when: false
+
+    - name: "Uninstall knative eventing kafka-controller"
+      when: knative_channel is defined and knative_channel == "kafka"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_eventing_kafka_controller_path }}
+      changed_when: true
+      failed_when: false
+
+    - name: "Remove example broker"
+      when: knative_channel is defined and knative_channel == "in-memory"
+      ansible.builtin.command:
+        cmd: "{{ kubectl_binary }} delete -f {{ example_broker_path }}"
+      changed_when: true
+      failed_when: false
+
+    - name: "Uninstall knative eventing mt-channel-broker {{ knative_eventing_version }}"
+      when: knative_channel is defined and knative_channel == "in-memory"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_eventing_mt_channel_broker_path }}
+      changed_when: true
+      failed_when: false
+
+    - name: "Uninstall knative eventing in-memory-channel {{ knative_eventing_version }}"
+      when: knative_channel is defined and knative_channel == "in-memory"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_eventing_in_memory_channel_path }}
+      changed_when: true
+      failed_when: false
+
+    - name: "Uninstall knative eventing core {{ knative_eventing_version }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_eventing_core_path }}
+      changed_when: true
+      failed_when: false
+
+    - name: "Uninstall knative eventing crds {{ knative_eventing_version }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_eventing_crds_path }}
+      changed_when: true
+      failed_when: false
+
+    - name: "Uninstall knative serving hpa {{ knative_serving_version }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_serving_hpa_path }}
+      changed_when: true
+      failed_when: false
+
+    - name: "Uninstall knative serving default domain {{ knative_serving_version }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_serving_default_domain_path }}
+      changed_when: true
+      failed_when: false
+
+    - name: "Uninstall knative kourier {{ knative_serving_version }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_kourier_path }}
+      changed_when: true
+      failed_when: false
+
+    - name: "Uninstall knative serving core {{ knative_serving_version }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_serving_core_path }}
+      changed_when: true
+      failed_when: false
+
+    - name: "Uninstall knative serving crds {{ knative_serving_version }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} delete -f {{ knative_serving_crds_path }}
+      changed_when: true
+      failed_when: false

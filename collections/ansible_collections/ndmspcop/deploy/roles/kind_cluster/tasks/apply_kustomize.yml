@@ -1,0 +1,17 @@
+---
+- name: "Generating kustomization file"
+  tags:
+    - install
+  ansible.builtin.template:
+    src: kustomization.yaml.j2
+    dest: "{{ kustomization_path }}"
+    mode: "0644"
+
+- name: "Apply kustomization"
+  tags:
+    - install
+  block:
+    - name: "Apply kustomization for kind cluster"
+      ansible.builtin.command:
+        cmd: "{{ kubectl_binary }} apply -k {{ my_cluster_wk_dir }}"
+      changed_when: true

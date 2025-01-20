@@ -1,0 +1,20 @@
+---
+- name: "Install popeye binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "popeye"
+    get_binary_version: "{{ popeye_version }}"
+    get_binary_version_check: "{{ popeye_version }}"
+    get_binary_url: >
+      https://github.com/derailed/popeye/releases/download/v{{ get_binary_version }}/popeye_{{ my_os }}_{{ my_arch }}.tar.gz
+    get_binary_post_version_args: "| grep Version"
+    get_binary_parse_delimeter: "v"
+    get_binary_parse_index: 1
+    get_binary_extract: true
+    get_binary_extract_exclude: []
+    get_binary_version_rcs: [0, 1]
+  tags:
+    - clean
+    - install
+    - verify

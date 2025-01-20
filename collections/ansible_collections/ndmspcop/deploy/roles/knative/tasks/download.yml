@@ -1,0 +1,84 @@
+---
+- name: "Download knative k8s files"
+  when: with_knative_quickstart is undefined or not with_knative_quickstart|bool
+  tags:
+    - clean
+    - install
+    - init
+  block:
+    - name: "Download knative serving crds '{{ knative_serving_version }}"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative/serving/releases/download/knative-{{ knative_serving_version }}/serving-crds.yaml"
+        dest: "{{ knative_serving_crds_path }}"
+        mode: "0664"
+
+    - name: "Download knative serving core '{{ knative_serving_version }}"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative/serving/releases/download/knative-{{ knative_serving_version }}/serving-core.yaml"
+        dest: "{{ knative_serving_core_path }}"
+        mode: "0664"
+
+    - name: "Download knative serving kourier '{{ knative_serving_version }}"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative/net-kourier/releases/download/knative-{{ knative_serving_version }}/kourier.yaml"
+        dest: "{{ knative_kourier_path }}"
+        mode: "0664"
+
+    - name: "Download knative serving default domain '{{ knative_serving_version }}"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative/serving/releases/download/knative-{{ knative_serving_version }}/serving-default-domain.yaml"
+        dest: "{{ knative_serving_default_domain_path }}"
+        mode: "0664"
+
+    - name: "Download knative HPA autoscaling '{{ knative_serving_version }}"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative/serving/releases/download/knative-{{ knative_serving_version }}/serving-hpa.yaml"
+        dest: "{{ knative_serving_hpa_path }}"
+        mode: "0664"
+
+    - name: "Download knative eventing crds '{{ knative_eventing_version }}"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative/eventing/releases/download/knative-{{ knative_eventing_version }}/eventing-crds.yaml"
+        dest: "{{ knative_eventing_crds_path }}"
+        mode: "0664"
+
+    - name: "Download knative eventing core '{{ knative_eventing_version }}"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative/eventing/releases/download/knative-{{ knative_eventing_version }}/eventing-core.yaml"
+        dest: "{{ knative_eventing_core_path }}"
+        mode: "0664"
+
+    - name: "Download knative eventing in-memory-channel '{{ knative_eventing_version }}"
+      when: knative_channel is defined and knative_channel == "in-memory"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative/eventing/releases/download/knative-{{ knative_eventing_version }}/in-memory-channel.yaml"
+        dest: "{{ knative_eventing_in_memory_channel_path }}"
+        mode: "0664"
+
+    - name: "Download knative eventing mt-channel-broker '{{ knative_eventing_version }}"
+      when: knative_channel is defined and knative_channel == "in-memory"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative/eventing/releases/download/knative-{{ knative_eventing_version }}/mt-channel-broker.yaml"
+        dest: "{{ knative_eventing_mt_channel_broker_path }}"
+        mode: "0664"
+
+    - name: "Download knative eventing kafka-controller '{{ knative_eventing_extension_version }}"
+      when: knative_channel is defined and knative_channel == "kafka"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative-extensions/eventing-kafka-broker/releases/download/knative-{{ knative_eventing_extension_version }}/eventing-kafka-controller.yaml"
+        dest: "{{ knative_eventing_kafka_controller_path }}"
+        mode: "0664"
+
+    - name: "Download knative eventing kafka-channel '{{ knative_eventing_extension_version }}"
+      when: knative_channel is defined and knative_channel == "kafka"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative-extensions/eventing-kafka-broker/releases/download/knative-{{ knative_eventing_extension_version }}/eventing-kafka-channel.yaml"
+        dest: "{{ knative_eventing_kafka_channel_path }}"
+        mode: "0664"
+
+    - name: "Download knative eventing kafka-broker '{{ knative_eventing_extension_version }}"
+      when: knative_channel is defined and knative_channel == "kafka"
+      ansible.builtin.get_url:
+        url: "https://github.com/knative-extensions/eventing-kafka-broker/releases/download/knative-{{ knative_eventing_extension_version }}/eventing-kafka-broker.yaml"
+        dest: "{{ knative_eventing_kafka_broker_path }}"
+        mode: "0664"

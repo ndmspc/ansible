@@ -1,0 +1,61 @@
+---
+- name: "Verify and install {{ get_binary_cmd ~ '(' ~ get_binary_version ~ ')'}})"
+  tags:
+    - install
+  block:
+    - name: "Verify {{ get_binary_cmd }}"
+      tags:
+        - install
+      ansible.builtin.include_tasks:
+        file: verify.yml
+      vars:
+        get_binary_verify_msg: false
+
+    - name: "Printt is binary needed"
+      ansible.builtin.debug:
+        var: binary_needs_install
+        verbosity: 1
+
+    - name: "Install {{ get_binary_cmd ~ ' ' ~ get_binary_version }}"
+      when: binary_needs_install|bool
+      block:
+        - name: "Install {{ get_binary_cmd ~ ' ' ~ get_binary_version }}"
+          ansible.builtin.debug:
+            msg: "Installing {{ get_binary_cmd ~ ' ' ~ get_binary_version }}"
+
+        - name: "Remove {{ get_binary_cmd }}"
+          ansible.builtin.include_tasks:
+            file: remove.yml
+
+        - name: "Create bin directory {{ my_bin_dir }}"
+          ansible.builtin.file:
+            path: "{{ my_bin_dir }}"
+            state: directory
+            mode: "0755"
+
+        - name: "Install {{ get_binary_cmd ~ ' ' ~ get_binary_version }}"
+          ansible.builtin.get_url:
+            url: "{{ get_binary_url }}"
+            dest: "{{ my_bin_dir }}/{{ get_binary_cmd }}"
+            mode: "0755"
+            validate_certs: "{{ get_binary_validate_certs }}"
+          register: get_binary_install_result
+          until: get_binary_install_result.status_code is undefined or get_binary_install_result.status_code == 200
+          retries: "{{ my_retries }}"
+          delay: "{{ my_delay }}"
+          failed_when: get_binary_install_result is failure
+          when: not get_binary_extract|bool
+
+        - name: "Download and extract {{ get_binary_cmd ~ '(' ~ get_binary_version ~ ') to ' ~ my_bin_dir ~ '/' ~ get_binary_cmd }}"
+          ansible.builtin.unarchive:
+            src: "{{ get_binary_url }}"
+            dest: "{{ my_bin_dir }}"
+            remote_src: true
+            exclude: "{{ get_binary_extract_exclude }}"
+            validate_certs: "{{ get_binary_validate_certs }}"
+            extra_opts: "{{ get_binary_extra_opts | default([]) }}"
+          register: download_and_unpack_result
+          until: download_and_unpack_result is succeeded
+          retries: "{{ my_retries }}"
+          delay: "{{ my_delay }}"
+          when: get_binary_extract|bool

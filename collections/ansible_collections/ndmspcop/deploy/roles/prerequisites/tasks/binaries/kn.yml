@@ -1,0 +1,16 @@
+---
+- name: "Install kn binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "kn"
+    get_binary_version: "{{ kn_version }}"
+    get_binary_version_check: "{{ kn_version_check }}"
+    get_binary_url: "https://github.com/knative/client/releases/download/knative-v{{ get_binary_version }}/kn-{{ my_os }}-{{ my_arch }}"
+    get_binary_post_version_args: "| grep knative-serving | cut -d '(' -f2 | cut -d ')' -f1"
+    get_binary_parse_delimeter: "v"
+    get_binary_parse_index: 3
+  tags:
+    - clean
+    - install
+    - verify

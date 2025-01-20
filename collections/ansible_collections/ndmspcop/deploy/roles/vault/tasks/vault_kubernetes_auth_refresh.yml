@@ -1,0 +1,53 @@
+---
+- name: "Refresh vault"
+  tags:
+    - vault-refresh
+    - restore
+  # when: init is defined
+  block:
+    - name: "Fail if vault tokent is not found"
+      when: vault_root_token is undefined or vault_root_token|length == 0
+      ansible.builtin.fail:
+        msg: 'Vault root token is not provided !!! Please add -e vault_root_token="<vault token value>"'
+
+    - name: "Doing status"
+      ansible.builtin.command: >
+        kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} -- vault status
+      changed_when: true
+      register: vault_status_result
+      retries: 100
+      delay: 3
+      until: vault_status_result.rc == 0
+
+    - name: "Doing vault login (retries are fine and it might take a while)"
+      ansible.builtin.command: >
+        kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} -- vault login {{ vault_root_token }}
+      changed_when: true
+      register: vault_login_result
+      retries: 100
+      delay: 3
+      until: vault_login_result.rc == 0
+
+    - name: "Disable kubernetes auth"
+      ansible.builtin.command: >
+        kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} -- vault auth disable kubernetes
+      changed_when: true
+
+    - name: "Enable kubernetes auth"
+      ansible.builtin.command: >
+        kubectl exec vault-hashicorp-0 -n {{ vault_namespace }} -- vault auth enable kubernetes
+      changed_when: true
+
+    - name: "Init vault kubernetes auth"
+      ansible.builtin.command: >
+        kubectl exec vault-hashicorp-0
+        -n {{ vault_namespace }}
+        -- sh -c 'vault write auth/kubernetes/config kubernetes_host=https://$KUBERNETES_SERVICE_HOST:$KUBERNETES_SERVICE_PORT'
+      changed_when: true
+
+    - name: "Write csi-kv role"
+      ansible.builtin.command: >
+        kubectl exec vault-hashicorp-0
+        -n {{ vault_namespace }}
+        -- sh -c 'vault write auth/kubernetes/role/csi-kv bound_service_account_names=* bound_service_account_namespaces=* policies=kv_policy ttl=20'
+      changed_when: true

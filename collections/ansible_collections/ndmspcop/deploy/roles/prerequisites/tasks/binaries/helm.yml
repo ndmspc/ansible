@@ -1,0 +1,21 @@
+---
+- name: "Install helm binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "helm"
+    get_binary_version: "{{ helm_version }}"
+    get_binary_url: "https://get.helm.sh/helm-{{ get_binary_version }}-{{ my_os }}-{{ my_arch }}.tar.gz"
+    get_binary_parse_delimeter: '"'
+    get_binary_parse_index: 1
+    get_binary_extract: true
+    get_binary_extract_exclude: ["LICENCE", "README.md"]
+    get_binary_extra_opts:
+      - --strip=1
+      - --wildcards
+      - "*/helm"
+    get_binary_version_rcs: [0, 1]
+  tags:
+    - clean
+    - install
+    - verify

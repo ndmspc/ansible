@@ -1,0 +1,10 @@
+#!/bin/bash
+
+[ -d $HOME/.aws ] || mkdir -p $HOME/.aws
+[ -d $HOME/.kube ] || mkdir -p $HOME/.kube
+{% if container_tool == "podman" %}
+CMD_ARGS="--userns=keep-id"
+{% else %}
+{% endif %}
+
+{{ container_tool }} run --rm -it --security-opt label=disable --name aws $CMD_ARGS -v $HOME/.aws:$HOME/.aws:Z -v $HOME/.kube:$HOME/.kube -w $HOME amazon/aws-cli $*

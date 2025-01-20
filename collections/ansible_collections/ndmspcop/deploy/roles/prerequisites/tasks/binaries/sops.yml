@@ -1,0 +1,16 @@
+---
+- name: "Install sops binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "sops"
+    get_binary_version: "{{ sops_version }}"
+    get_binary_url: "https://github.com/getsops/sops/releases/download/v{{ get_binary_version }}/sops-v{{ get_binary_version }}.{{ my_os }}.{{ my_arch }}"
+    get_binary_version_subcmd: "--version"
+    get_binary_parse_delimeter: " "
+    get_binary_parse_index: 1
+    get_binary_version_rcs: [0, 1]
+  tags:
+    - clean
+    - install
+    - verify

@@ -1,0 +1,4 @@
+---
+- name: "Verifing knative setup"
+  ansible.builtin.debug:
+    msg: "Doing knative verify"

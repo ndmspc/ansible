@@ -1,0 +1,8 @@
+---
+- name: "Verify kind cluster"
+  tags:
+    - verify
+  block:
+    - name: "Check cluster"
+      ansible.builtin.include_tasks:
+        file: verify_cluster.yml

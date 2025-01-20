@@ -1,0 +1,194 @@
+---
+- name: "Clean minikube cluster"
+  tags:
+    - delete
+    - clean
+    - install
+  block:
+    - name: "Ensure that the {{ my_cluster_wk_dir ~ 'directory exists and is empty' }}"
+      ansible.builtin.file:
+        state: "{{ item }}"
+        path: "{{ my_cluster_wk_dir }}"
+        mode: "755"
+      with_items:
+        - absent
+        - directory
+
+    - name: "Delete minikube cluster"
+      ansible.builtin.command: >
+        {{ minikube_binary }} -p {{ cluster_name }} delete
+      changed_when: true
+
+    - name: "Delete redirect localhost registry to minikube registry"
+      when: with_registry is defined and with_registry|bool
+      ansible.builtin.shell: >
+        {{ container_tool }}
+        rm -f {{ minikube_redirect_registry_name }}
+      changed_when: true
+
+- name: "Init minikube cluster plugins"
+  tags:
+    - clean
+    - install
+  block:
+    - name: "Set default cluster plugins"
+      ansible.builtin.set_fact:
+        with_registry: true
+        with_ingress: true
+        with_metrics: true
+        with_dashboard: false
+      tags:
+        - clean
+        - install
+
+- name: "Install minikube cluster"
+  tags:
+    - install
+  block:
+    - name: "Adding ingress addon"
+      when: with_ingress is defined and with_ingress|bool
+      ansible.builtin.set_fact:
+        minikube_addons_list: "{{ minikube_addons_list + ['ingress'] }}"
+
+    - name: "Adding ingress-dns addon"
+      when: with_ingress is defined and with_ingress|bool
+      ansible.builtin.set_fact:
+        minikube_addons_list: "{{ minikube_addons_list + ['ingress-dns'] }}"
+
+    - name: "Adding metrics-server addon"
+      when: with_metrics is defined and with_metrics|bool
+      ansible.builtin.set_fact:
+        minikube_addons_list: "{{ minikube_addons_list + ['metrics-server'] }}"
+
+    - name: "Adding registry addon"
+      when: with_registry is defined and with_registry|bool
+      ansible.builtin.set_fact:
+        minikube_addons_list: "{{ minikube_addons_list + ['registry'] }}"
+
+    - name: "Adding metallb addon"
+      when: with_metallb is defined and with_metallb|bool
+      ansible.builtin.set_fact:
+        minikube_addons_list: "{{ minikube_addons_list + ['metallb'] }}"
+
+    - name: "Adding dashboard addon"
+      when: with_dashboard is defined and with_dashboard|bool
+      ansible.builtin.set_fact:
+        minikube_addons_list: "{{ minikube_addons_list + ['dashboard'] }}"
+
+    - name: "Sets minikube_addons variable"
+      ansible.builtin.set_fact:
+        minikube_addons: "{{ minikube_addons_list | join(',') }}"
+
+    - name: "Add extra mount to cluster"
+      when: extraMountHostPath is defined and extraMountHostPath | length >0 and extraMountContainerPath is defined and extraMountContainerPath | length > 0
+      ansible.builtin.set_fact:
+        extra_mount_arg: "--mount=true --mount-string={{ extraMountHostPath }}:{{ extraMountContainerPath }}"
+
+    - name: "Prints minikube_addons"
+      ansible.builtin.debug:
+        var: minikube_addons
+
+    - name: "Install minikube cluster with name '{{ cluster_name }}'"
+      ansible.builtin.command: >
+        {{ minikube_binary }} start
+        -p {{ cluster_name }}
+        --static-ip {{ minikube_ip }}
+        --cpus {{ minikube_cpus }}
+        --memory {{ minikube_memory }}
+        --nodes {{ minikube_cluster_nodes }}
+        --insecure-registry {{ minikube_insecure_registries }}
+        {{ extra_mount_arg }}
+        --addons={{ minikube_addons }}
+        {{ minikube_start_extra_args }}
+      changed_when: true
+
+    - name: "Enable registry cred"
+      when: minikube_registry_cred_server is defined and minikube_registry_cred_server|length > 0
+      block:
+        - name: "Generate registry cred {{ minikube_cred_server }}"
+          ansible.builtin.template:
+            src: registry-cred.yaml.j2
+            dest: "{{ minikube_registry_cred_path }}"
+            mode: "0644"
+
+        - name: "Apply registry cred config"
+          ansible.builtin.command: >
+            {{ kubectl_binary }} apply -f {{ minikube_registry_cred_path }}
+          changed_when: true
+
+        - name: "Apply empty registry-creds-acr.yaml"
+          ansible.builtin.command: >
+            {{ kubectl_binary }} apply -f {{ role_path }}/files/registry-creds-acr.yaml
+          changed_when: true
+
+        - name: "Apply empty registry-creds-ecr.yaml"
+          ansible.builtin.command: >
+            {{ kubectl_binary }} apply -f {{ role_path }}/files/registry-creds-ecr.yaml
+          changed_when: true
+
+        - name: "Apply empty registry-creds-gcr.yaml"
+          ansible.builtin.command: >
+            {{ kubectl_binary }} apply -f {{ role_path }}/files/registry-creds-gcr.yaml
+          changed_when: true
+
+        - name: "Enable registry-creds addon"
+          ansible.builtin.command: >
+            {{ minikube_binary }}
+            -p {{ cluster_name }}
+            addons enable registry-creds
+          changed_when: true
+
+    - name: "Generate metallb in range {{ minikube_metallb_ip_range }}"
+      ansible.builtin.template:
+        src: metallb.yaml.j2
+        dest: "{{ minikube_metallb_config_path }}"
+        mode: "0644"
+
+    - name: "Apply metallb config"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ minikube_metallb_config_path }}
+      changed_when: true
+
+    - name: "Redirect localhost registry to minikube registry via ip {{ minikube_ip }}"
+      when: with_registry is defined and with_registry|bool
+      ansible.builtin.shell: >
+        {{ container_tool }}
+        run -d --network=host --name {{ minikube_redirect_registry_name }}
+        alpine ash -c "apk add socat && socat TCP-LISTEN:{{ registry_port }},reuseaddr,fork TCP:{{ minikube_ip }}:5000"
+      changed_when: true
+
+- name: "Setting default storageclass"
+  when:
+    - minikube_default_storageclass|length > 0
+    - minikube_default_storageclass == "csi-hostpath-sc"
+  tags:
+    - install
+  block:
+    - name: "Disable minikube addon storage-provisioner"
+      ansible.builtin.command: >
+        {{ minikube_binary }} -p {{ cluster_name }} addons disable storage-provisioner
+      changed_when: true
+
+    - name: "Disable minikube addon default-storageclass"
+      ansible.builtin.command: >
+        {{ minikube_binary }} -p {{ cluster_name }} addons disable default-storageclass
+      changed_when: true
+
+    - name: "Set {{ minikube_default_storageclass ~ ' storageclass as default' }}"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} patch storageclass
+        {{ minikube_default_storageclass }}
+        -p '{"metadata": {"annotations":{"storageclass.kubernetes.io/is-default-class":"true"}}}'
+      changed_when: true
+
+    - name: "Setting label to 'csi-hostpath-snapclass'"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} label volumesnapshotclass
+        csi-hostpath-snapclass velero.io/csi-volumesnapshot-class=true
+      changed_when: true
+
+    - name: "Set deletionPolicy to 'Retain'"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} patch volumesnapshotclass
+        csi-hostpath-snapclass --type='merge' -p '{"deletionPolicy": "Retain"}'
+      changed_when: true

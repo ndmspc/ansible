@@ -1,0 +1,16 @@
+---
+- name: "Install kn-quickstart binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "kn-quickstart"
+    get_binary_version: "{{ kn_quickstart_version }}"
+    get_binary_url: >
+      https://github.com/knative-extensions/kn-plugin-quickstart/releases/download/knative-v{{ get_binary_version }}/kn-quickstart-{{ my_os }}-{{ my_arch }}
+    get_binary_post_version_args: "| grep Version"
+    get_binary_parse_delimeter: "v"
+    get_binary_parse_index: 1
+  tags:
+    - clean
+    - install
+    - verify

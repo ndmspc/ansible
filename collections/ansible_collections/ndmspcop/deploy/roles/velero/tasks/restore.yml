@@ -1,0 +1,31 @@
+---
+- name: "Restoring namespace"
+  tags:
+    - restore
+  block:
+    - name: "Printing info"
+      ansible.builtin.debug:
+        msg: "Processing {{ namespace_item }}"
+
+    - name: "Restoring namespce {{ namespace_item }}"
+      ansible.builtin.command: >
+        {{ velero_binary }} restore
+        create restore-{{ namespace_item }}
+        --include-namespaces {{ namespace_item }}
+        --from-backup backup-{{ namespace_item }} --wait
+      changed_when: true
+      register: velero_restore_restult
+      retries: 100
+      delay: 3
+      until: velero_restore_restult.rc == 0
+
+    - name: "Running special task for vault"
+      when: namespace_item == "vault"
+      ansible.builtin.debug:
+        msg: "Vault task"
+
+    - name: "Processing vault"
+      when: namespace_item == "vault"
+      ansible.builtin.include_role:
+        name: vault
+        tasks_from: vault_kubernetes_auth_refresh.yml

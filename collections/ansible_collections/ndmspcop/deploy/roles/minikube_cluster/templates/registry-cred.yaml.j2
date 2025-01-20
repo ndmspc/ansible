@@ -1,0 +1,17 @@
+apiVersion: v1
+data:
+  DOCKER_PRIVATE_REGISTRY_PASSWORD: {{ minikube_registry_cred_password | ansible.builtin.b64encode }}
+  DOCKER_PRIVATE_REGISTRY_SERVER: {{ minikube_registry_cred_server | ansible.builtin.b64encode }}
+  DOCKER_PRIVATE_REGISTRY_USER: {{ minikube_registry_cred_user | ansible.builtin.b64encode }}
+kind: Secret
+metadata:
+  creationTimestamp: "2024-12-10T18:26:05Z"
+  labels:
+    app: registry-creds
+    cloud: dpr
+    kubernetes.io/minikube-addons: registry-creds
+  name: registry-creds-dpr
+  namespace: kube-system
+  resourceVersion: "6987"
+  uid: 9dd07451-ec42-4924-91d2-c9fafce56750
+type: Opaque

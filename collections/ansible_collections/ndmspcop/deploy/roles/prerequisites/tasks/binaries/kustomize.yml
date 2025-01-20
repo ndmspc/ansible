@@ -1,0 +1,18 @@
+---
+- name: "Install kustomize binary"
+  ansible.builtin.include_role:
+    name: get_binary
+  vars:
+    get_binary_cmd: "kustomize"
+    get_binary_version: "{{ kustomize_version }}"
+    get_binary_url: >
+      https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v{{ get_binary_version }}/kustomize_v{{ get_binary_version }}_{{ my_os }}_{{ my_arch }}.tar.gz
+    get_binary_parse_delimeter: "v"
+    get_binary_parse_index: 1
+    get_binary_extract: true
+    get_binary_extract_exclude: []
+    get_binary_version_rcs: [0, 1]
+  tags:
+    - clean
+    - install
+    - verify

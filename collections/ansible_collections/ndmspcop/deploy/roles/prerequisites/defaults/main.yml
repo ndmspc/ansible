@@ -1,0 +1,60 @@
+---
+my_bin_dir: "{{ my_work_dir }}/bin"
+my_retries: 3
+my_delay: 15
+my_os: "linux"
+my_arch: "amd64"
+container_tool: docker
+prerequisite_list:
+  - "kind"
+  - "minikube"
+  - "kubectl"
+  - "kustomize"
+  - "kn"
+  - "kn-quickstart"
+  - "kn-func"
+  - "k9s"
+  - "helm"
+  - "flux"
+  - "terraform"
+  - "sops"
+  - "vault"
+  - "medusa"
+  - "cosign"
+  - "kubeseal"
+  - "gh"
+  - "lazygit"
+  - "operator-sdk"
+  - "tkn"
+  - "aws"
+  - "velero"
+  - "kopia"
+  # - "aws"
+kubectl_version: v1.30.4
+kustomize_version: 5.5.0
+kubeseal_version: 0.27.1
+k9s_version: 0.32.7
+kn_version: 1.16.0
+kn_version_check: 0.43.0
+kn_quickstart_version: "{{ kn_version }}"
+kn_func_version: "{{ kn_version }}"
+kn_func_version_check: 0.43.0
+kind_version: v0.24.0
+minikube_version: 1.34.0
+kind_kube_version: "{{ kubectl_version }}"
+oc_version: 4.17.0
+operator_sdk_version: v1.37.0
+tkn_version: 0.38.1
+helm_version: v3.16.2
+flux_version: 2.4.0
+terraform_version: v1.9.7
+vault_version: v1.18.0
+medusa_version: 0.7.2
+sops_version: 3.9.1
+cosign_version: 2.4.1
+gh_version: 2.57.0
+lazygit_version: 0.44.1
+popeye_version: 0.21.5
+aws_binary: "aws"
+velero_version: 1.15.0
+kopia_version: 0.17.0

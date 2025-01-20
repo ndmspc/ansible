@@ -1,0 +1,53 @@
+---
+- name: "Install metallb"
+  tags:
+    - install
+  block:
+    - name: "Install metallb {{ metallb_version }}"
+      kubernetes.core.k8s:
+        state: present
+        src: "https://raw.githubusercontent.com/metallb/metallb/{{ metallb_version }}/config/manifests/metallb-native.yaml"
+        wait: true
+        wait_sleep: 1
+        wait_timeout: 360
+        kubeconfig: "{{ kubeconfig }}"
+
+    - name: "Get kind networok ip range"
+      ansible.builtin.command: >
+        {{ container_tool }} network inspect {{ cluster_name }}
+      changed_when: true
+      register: kind_inspect_network_result
+
+    - name: "Set inspect network object"
+      ansible.builtin.set_fact:
+        kind_inspect_network: "{{ kind_inspect_network_result.stdout | from_json }}"
+
+    - name: "Getting base ip range from docker"
+      when: container_tool == "docker"
+      ansible.builtin.set_fact:
+        kind_metallb_ip: "{{ kind_inspect_network[0].IPAM.Config[0].Gateway | split('.') }}"
+
+    - name: "Getting base ip range from podman"
+      when: container_tool == "podman"
+      ansible.builtin.set_fact:
+        kind_metallb_ip: "{{ kind_inspect_network[0].subnets[1].gateway | split('.') }}"
+
+    - name: "Generating ip range"
+      ansible.builtin.set_fact:
+        kind_metallb_ip_range: "{{ kind_metallb_ip[0] }}.{{ kind_metallb_ip[1] }}.255.1-{{ kind_metallb_ip[0] }}.{{ kind_metallb_ip[1] }}.255.250"
+
+    - name: "Print kind_metallb_ip_range"
+      ansible.builtin.debug:
+        var: kind_metallb_ip_range
+        verbosity: 1
+
+    - name: "Generate metallb in range {{ kind_metallb_ip_range }}"
+      ansible.builtin.template:
+        src: metallb.yaml.j2
+        dest: "{{ kind_metallb_config_path }}"
+        mode: "0644"
+
+    - name: "Apply metallb config"
+      ansible.builtin.command: >
+        {{ kubectl_binary }} apply -f {{ kind_metallb_config_path }}
+      changed_when: true

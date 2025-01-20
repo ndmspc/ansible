@@ -1,0 +1,16 @@
+---
+- name: "Verify system binary '{{ sb_item }}'"
+  tags:
+    - install
+    - verify
+  block:
+    - name: "Check if binary is available : {{ sb_item }}"
+      ansible.builtin.command: "which {{ sb_item }}"
+      register: sb_results
+      changed_when: false
+      failed_when: false
+
+    - name: "Fail binary was not found : {{ sb_item }}"
+      ansible.builtin.fail:
+        msg: "'{{ sb_item }}' was not found! You need to install it first."
+      when: sb_results.rc != 0
