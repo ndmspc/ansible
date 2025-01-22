@@ -1,0 +1,6 @@
+galaxy_info:
+  role_name: interactive
+  author: Martin Vala
+  description: Interactive role
+  min_ansible_version: 2.15.0
+  license: GPL-2.0-or-later

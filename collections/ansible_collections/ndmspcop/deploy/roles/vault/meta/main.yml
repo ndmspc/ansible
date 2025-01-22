@@ -1,0 +1,6 @@
+galaxy_info:
+  role_name: vault
+  author: Martin Vala
+  description: Vault role
+  min_ansible_version: 2.15.0
+  license: GPL-2.0-or-later
