@@ -1,0 +1,6 @@
+galaxy_info:
+  role_name: minikube_cluster
+  author: Martin Vala
+  description: Minikube cluster role
+  min_ansible_version: 2.15.0
+  license: GPL-2.0-or-later

@@ -1,0 +1,6 @@
+galaxy_info:
+  role_name: knative
+  author: Martin Vala
+  description: Knative role
+  min_ansible_version: 2.15.0
+  license: GPL-2.0-or-later
