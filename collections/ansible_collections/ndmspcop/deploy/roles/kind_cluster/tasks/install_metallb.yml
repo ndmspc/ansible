@@ -30,11 +30,11 @@
     - name: "Getting base ip range from podman"
       when: container_tool == "podman"
       ansible.builtin.set_fact:
-        kind_metallb_ip: "{{ kind_inspect_network[0].subnets[1].gateway | split('.') }}"
+        kind_metallb_ip: "{{ kind_inspect_network[0].subnets[0].gateway | split('.') }}"
 
     - name: "Generating ip range"
       ansible.builtin.set_fact:
-        kind_metallb_ip_range: "{{ kind_metallb_ip[0] }}.{{ kind_metallb_ip[1] }}.255.1-{{ kind_metallb_ip[0] }}.{{ kind_metallb_ip[1] }}.255.250"
+        kind_metallb_ip_range: "{{ kind_metallb_ip[0] }}.{{ kind_metallb_ip[1] }}.0.200-{{ kind_metallb_ip[0] }}.{{ kind_metallb_ip[1] }}.0.250"
 
     - name: "Print kind_metallb_ip_range"
       ansible.builtin.debug:

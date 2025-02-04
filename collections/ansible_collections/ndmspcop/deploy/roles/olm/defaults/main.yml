@@ -2,7 +2,7 @@
 my_work_dir: "{{ ansible_env.HOME }}/.ndmspc/env"
 my_bin_dir: "{{ my_work_dir }}/bin"
 operator_sdk_binary: operator-sdk
-olm_version: v0.20.0
+olm_version: v0.31.0
 cluster_binary: "kubectl"
 olm_installation_timeout: "5m0s"
 olm_already_installed_message_output: "detected existing OLM resources: OLM must be completely uninstalled before installation"

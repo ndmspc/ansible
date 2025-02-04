@@ -1,5 +1,7 @@
 ---
 - name: "OLM detection"
+  tags:
+    - install
   block:
     - name: "Get all pods"
       kubernetes.core.k8s_info:
@@ -52,11 +54,9 @@
         - olm_is_running|bool
         - "'v' not in olm_version_detected"
 
-    - name: "OLM is not needed, when existing {{ olm_version_detected }} is defined and correctly set to {{ olm_version }}"
+    - name: "OLM is not needed, when existing {{ olm_version_detected ~ 'is defined and correctly set to' ~ olm_version }}"
       ansible.builtin.set_fact:
         olm_needed: false
       when:
         - olm_version_detected is defined
         - olm_version_detected == olm_version
-  tags:
-    - install

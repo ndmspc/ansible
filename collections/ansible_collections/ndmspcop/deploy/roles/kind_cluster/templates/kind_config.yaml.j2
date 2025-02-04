@@ -38,7 +38,6 @@ containerdConfigPatches:
     ca_file = ""
 {% endif %}
 
-{% if with_ingress|bool == true %}
 nodes:
 - role: control-plane
   kubeadmConfigPatches:
@@ -54,13 +53,16 @@ nodes:
   - containerPort: 443
     hostPort: 8443
     protocol: TCP
-  - containerPort: 8080
-    hostPort: 8080
+  - containerPort: 5678
+    hostPort: 5678
     protocol: TCP
+#  - containerPort: 8080
+#    hostPort: 8081
+#    protocol: TCP
+# knative kourier port
   - containerPort: 31080
     listenAddress: 0.0.0.0
     hostPort: 31080
-{% endif %}
 {% if extraMountHostPath is defined and extraMountHostPath | length >0 and extraMountContainerPath is defined and extraMountContainerPath | length > 0 %}
   extraMounts:
   - hostPath: {{ extraMountHostPath }}

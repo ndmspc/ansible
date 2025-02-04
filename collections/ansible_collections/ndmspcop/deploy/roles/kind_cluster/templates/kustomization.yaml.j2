@@ -2,7 +2,7 @@ resources:
 {% if with_ingress|bool == true %}
   - https://raw.githubusercontent.com/kubernetes/ingress-nginx/main/deploy/static/provider/kind/deploy.yaml
 {% endif %}
-{% if with_ingress|bool == true %}
+{% if with_metrics|bool == true %}
   - https://github.com/kubernetes-sigs/metrics-server/releases/download/v{{ metrics_server_version }}/components.yaml
 
 patches:
